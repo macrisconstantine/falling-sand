@@ -22,7 +22,7 @@ function addGrain(x, y) {
         x,
         y,
         dy: 2 + Math.random() * 4, // Downward speed
-        size: 10,                  // Fixed grain size
+        size: 3,                  // Fixed grain size
         color: 'orange'
     });
 }
