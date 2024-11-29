@@ -13,58 +13,79 @@ window.addEventListener('resize', resizeCanvas);
 
 // Array to hold all grains of sand
 const grains = [];
-let mouseHeld = false; // Flag to track whether the mouse is being held
-let mouseX = 0;
-let mouseY = 0;
+let mouseHeld = false;
+let mouseX = 0, mouseY = 0;
 
 // Function to add a grain at the specified position
 function addGrain(x, y) {
     grains.push({
-        x: x,                  // Fixed X position
-        y: y,                  // Fixed Y position
-        dy: 2 + Math.random() * 4,                 // Downward speed
-        size: 2 + Math.random() * 2,               // Fixed grain size
+        x,
+        y,
+        dy: 2 + Math.random() * 4, // Downward speed
+        size: 10,                  // Fixed grain size
         color: 'orange'
-        // color: `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})` // Random color
     });
 }
 
-// Function to check if a grain has landed on another grain
+// Check if a grain has landed on another grain
 function hasLanded(grain) {
-    for (let other of grains) {
-        if (grain === other) continue; // Skip self-comparison
+    return grains.some(other => {
+        if (grain === other) return false; // Skip self-comparison
+        return (
+            grain.x < other.x + other.size &&
+            grain.x + grain.size > other.x &&
+            grain.y + grain.size >= other.y &&
+            other.dy === 0
+        );
+    });
+}
 
-        // Check for collision
-        if (
-            grain.x < other.x + other.size &&  // Right edge of grain intersects
-            grain.x + grain.size > other.x && // Left edge of grain intersects
-            grain.y + grain.size >= other.y && // Bottom edge is at or just above another grain
-            other.dy == 0 // Allow a small margin for collision
-        ) {
-            return true; // Grain has landed
-        }
+// Check if a grain can move to a specific position
+function canMove(grain, dx, dy) {
+    const newX = grain.x + dx;
+    const newY = grain.y + dy;
+
+    // Check bounds
+    if (newX < 0 || newX + grain.size > canvas.width || newY + grain.size > canvas.height) {
+        return false;
     }
-    return false; // No collision detected
+
+    // Check collision
+    return !grains.some(other => {
+        if (grain === other) return false; // Skip self
+        return (
+            newX < other.x + other.size &&
+            newX + grain.size > other.x &&
+            newY < other.y + other.size &&
+            newY + grain.size > other.y &&
+            other.dy === 0
+        );
+    });
 }
 
 // Animation loop
 function animate() {
-    // Clear the canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw and update all grains
-    for (let i = 0; i < grains.length; i++) {
-        const grain = grains[i];
+    for (const grain of grains) {
+        if (canMove(grain, 0, grain.dy)) {
+            grain.y += grain.dy;  // Move down
+            grain.dy += 0.1;     // Gravity acceleration
+        } else if (grain.dy > 0) {
+            const canMoveRight = canMove(grain, grain.size, grain.dy);
+            const canMoveLeft = canMove(grain, -grain.size, grain.dy);
 
-        // Update grain position only if it's still falling
-        if (grain.dy > 0) {
-            grain.y += grain.dy;
-            grain.dy += 0.05; // Acceleration due to gravity
-
-            // Stop grain if it hits another grain or the bottom of the canvas
-            if (grain.y + grain.size >= canvas.height || hasLanded(grain)) {
-                grain.y = Math.min(grain.y, canvas.height - grain.size); // Lock position at the bottom
-                grain.dy = 0; // Stop further movement
+            if (canMoveRight && canMoveLeft) {
+                grain.x += (Math.random() < 0.5 ? 1 : -1) * grain.size;
+                grain.y += grain.dy;
+            } else if (canMoveRight) {
+                grain.x += grain.size;
+                grain.y += grain.dy;
+            } else if (canMoveLeft) {
+                grain.x -= grain.size;
+                grain.y += grain.dy;
+            } else {
+                grain.dy = 0; // Stop if no movement is possible
             }
         }
 
@@ -73,32 +94,28 @@ function animate() {
         ctx.fillRect(grain.x, grain.y, grain.size, grain.size);
     }
 
-    // If the mouse is held, keep adding grains at the current mouse position
+    // Add grains continuously if mouse is held
     if (mouseHeld) {
         addGrain(mouseX, mouseY);
     }
 
-    // Request the next animation frame
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animate); // Next frame
 }
 
-// Add event listeners for mouse actions
-canvas.addEventListener('mousedown', function (event) {
-    mouseHeld = true; // Set the flag to true when the mouse is pressed
-    const rect = canvas.getBoundingClientRect();
-    mouseX = event.clientX - rect.left; // Update mouseX
-    mouseY = event.clientY - rect.top;  // Update mouseY
+// Add mouse event listeners
+canvas.addEventListener('mousedown', (event) => {
+    mouseHeld = true;
+    updateMousePosition(event);
 });
+canvas.addEventListener('mouseup', () => mouseHeld = false);
+canvas.addEventListener('mousemove', updateMousePosition);
 
-canvas.addEventListener('mouseup', function () {
-    mouseHeld = false; // Reset the flag when the mouse is released
-});
-
-canvas.addEventListener('mousemove', function (event) {
+// Update mouse position
+function updateMousePosition(event) {
     const rect = canvas.getBoundingClientRect();
-    mouseX = event.clientX - rect.left; // Update mouseX
-    mouseY = event.clientY - rect.top;  // Update mouseY
-});
+    mouseX = event.clientX - rect.left;
+    mouseY = event.clientY - rect.top;
+}
 
 // Start the animation
 animate();
