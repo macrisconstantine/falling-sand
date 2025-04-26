@@ -8,3 +8,4 @@
 - TODO: Add a graphical representation of how many computations are happening (show why your code is garbage)
 - TODO: Stop being depressed.
 - TODO: Change everything to snap to a grid so that everything is more aesthetic and efficient. 
+- wake up
